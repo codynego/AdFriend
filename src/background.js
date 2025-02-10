@@ -79,3 +79,52 @@ chrome.declarativeNetRequest.updateDynamicRules(
     console.log("All rules (existing + malicious domains) added!");
   }
 );
+
+// Function to fetch a random quote from an API
+async function fetchQuote() {
+  try {
+    const response = await fetch("https://api.quotable.io/random");
+    const data = await response.json();
+    return { quote: data.content, author: data.author };
+  } catch (error) {
+    console.error("Failed to fetch quote:", error);
+    return { quote: "Stay inspired!", author: "" };
+  }
+}
+
+// Function to fetch activities from Chrome storage
+async function getActivities() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["activities"], (result) => {
+      resolve(result.activities || []);
+    });
+  });
+}
+
+// Function to update the ad block counter
+async function updateAdBlockCount() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["adBlockCount"], (result) => {
+      let count = (result.adBlockCount || 0) + 1;
+      chrome.storage.local.set({ adBlockCount: count }, () => resolve(count));
+    });
+  });
+}
+
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "fetchQuote") {
+    fetchQuote().then(sendResponse);
+    return true; 
+  }
+
+  if (message.action === "fetchActivities") {
+    getActivities().then(sendResponse);
+    return true;
+  }
+
+  if (message.action === "updateAdBlockCount") {
+    updateAdBlockCount().then(sendResponse);
+    return true;
+  }
+});

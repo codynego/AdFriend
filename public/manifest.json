@@ -3,7 +3,7 @@
   "name": "AdFriend",
   "version": "1.0",
   "description": "Blocks ads and replaces them with motivational content.",
-  "permissions": ["declarativeNetRequest", "declarativeNetRequestWithHostAccess"],
+  "permissions": ["declarativeNetRequest", "declarativeNetRequestWithHostAccess", "activeTab", "scripting"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"

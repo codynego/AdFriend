@@ -8,31 +8,20 @@ const App = () => {
 
   useEffect(() => {
     const loadPreferences = async () => {
-      if (chrome?.storage?.local) {
-        chrome.storage.local.get(["adContent", "activities", "adBlockCount"], (result) => {
-          if (result.adContent) setContent(result.adContent);
-          if (result.activities) setActivities(result.activities);
-          if (result.adBlockCount) setAdBlockCount(result.adBlockCount);
-        });
-      } else {
         // Fallback for non-extension testing
         setContent(localStorage.getItem("adContent") || "motivation");
         setActivities(JSON.parse(localStorage.getItem("activities")) || []);
         setAdBlockCount(parseInt(localStorage.getItem("adBlockCount")) || 0);
       }
-    };
     loadPreferences();
   }, []);
 
   const savePreference = async () => {
-    if (chrome?.storage?.local) {
-      chrome.storage.local.set({ adContent: content }, () => {
-        alert("Preference saved!");
-      });
-    } else {
       localStorage.setItem("adContent", content);
+      if (chrome?.storage?.local) {
+        chrome.storage.local.setItem("adContent", content)
+      }
       alert("Preference saved!");
-    }
   };
 
   const addActivity = async () => {
@@ -40,21 +29,13 @@ const App = () => {
     const updatedActivities = [...activities, activity];
     setActivities(updatedActivities);
     setActivity("");
-    if (chrome?.storage?.local) {
-      chrome.storage.local.set({ activities: updatedActivities });
-    } else {
-      localStorage.setItem("activities", JSON.stringify(updatedActivities));
-    }
+    localStorage.setItem("activities", JSON.stringify(updatedActivities));
   };
 
   const removeActivity = async (index) => {
     const updatedActivities = activities.filter((_, i) => i !== index);
     setActivities(updatedActivities);
-    if (chrome?.storage?.local) {
-      chrome.storage.local.set({ activities: updatedActivities });
-    } else {
-      localStorage.setItem("activities", JSON.stringify(updatedActivities));
-    }
+    localStorage.setItem("activities", JSON.stringify(updatedActivities));
   };
 
   return (
