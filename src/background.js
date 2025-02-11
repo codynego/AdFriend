@@ -45,7 +45,6 @@ const adBlockingRules = [
       resourceTypes: ["main_frame", "sub_frame"], // Block popups and iframes
     },
   },
-  // Allow Google domains (safeguard)
   {
     id: 5,
     priority: 1,
@@ -54,6 +53,15 @@ const adBlockingRules = [
       urlFilter: "||google.com^",
       resourceTypes: ["main_frame", "sub_frame", "script", "image"],
     },
+  },
+  {
+    id: 6,
+    priority: 1,
+    action: { "type": "block" },
+    condition: {
+      urlFilter: "*ad*|*popup*|*tracking*|*clickbait*|*sponsored*",
+      resourceTypes: ["main_frame", "sub_frame"]
+    }
   },
 ];
 
@@ -109,5 +117,62 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
 
     return true;
+  }
+});
+
+
+async function getAdStats() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["adCount", "siteCount", "resetTime"], (data) => {
+      const now = Date.now();
+      if (!data.resetTime || now - data.resetTime > 24 * 60 * 60 * 1000) {
+        // Reset if more than 24 hours have passed
+        chrome.storage.local.set({ adCount: 0, siteCount: 0, resetTime: now }, () => {
+          resolve({ adCount: 0, siteCount: 0 });
+        });
+      } else {
+        resolve({ adCount: data.adCount || 0, siteCount: data.siteCount || 0 });
+      }
+    });
+  });
+}
+
+async function updateAdStats(adsLength) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["adCount", "siteCount", "resetTime"], (data) => {
+      const now = Date.now();
+      let { adCount = 0, siteCount = 0, resetTime } = data;
+
+      console.log("new length", adsLength)
+      adCount += adsLength;
+      console.log("adcount", adCount)
+      console.log("ad increment", adsLength)
+      siteCount += 1; // Increment site count only when ads are detected
+
+      chrome.storage.local.set({ adCount, siteCount, resetTime: resetTime || now }, () => {
+        resolve({ adCount, siteCount });
+      });
+    });
+  });
+}
+
+
+// Listen for messages from content.js
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "getAdStats") {
+    getAdStats().then(sendResponse);
+    return true; // Keep the message channel open for async response
+  }
+
+  if (request.action === "updateAdStats") {
+    updateAdStats(request.adsLength).then(sendResponse);
+    return true; // Keep the message channel open for async response
+  }
+});
+
+
+chrome.windows.onCreated.addListener((window) => {
+  if (window.type === "popup") {
+    chrome.windows.remove(window.id);
   }
 });
