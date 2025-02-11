@@ -79,52 +79,35 @@ chrome.declarativeNetRequest.updateDynamicRules(
     console.log("All rules (existing + malicious domains) added!");
   }
 );
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "fetchQuote") {
+    fetch("https://zenquotes.io/api/random")
+      .then((response) => response.json())
+      .then((data) => {
+        sendResponse({ quote: data[0]?.q, author: data[0]?.a });
+      })
+      .catch((error) => {
+        console.error("Failed to fetch quote:", error);
+        sendResponse({ quote: "Stay positive!", author: "Unknown" });
+      });
 
-// Function to fetch a random quote from an API
-async function fetchQuote() {
-  try {
-    const response = await fetch("https://api.quotable.io/random");
-    const data = await response.json();
-    return { quote: data.content, author: data.author };
-  } catch (error) {
-    console.error("Failed to fetch quote:", error);
-    return { quote: "Stay inspired!", author: "" };
-  }
-}
-
-// Function to fetch activities from Chrome storage
-async function getActivities() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(["activities"], (result) => {
-      resolve(result.activities || []);
-    });
-  });
-}
-
-// Function to update the ad block counter
-async function updateAdBlockCount() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(["adBlockCount"], (result) => {
-      let count = (result.adBlockCount || 0) + 1;
-      chrome.storage.local.set({ adBlockCount: count }, () => resolve(count));
-    });
-  });
-}
-
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "fetchQuote") {
-    fetchQuote().then(sendResponse);
-    return true; 
+    return true; // Required to keep the message channel open for async response
   }
 
-  if (message.action === "fetchActivities") {
-    getActivities().then(sendResponse);
+  if (request.action === "adContent") {
+    chrome.storage.local.get("adContent", (data) => {
+      console.log("fetched adCoontent", data.adContent)
+      sendResponse(data.adContent || "motivation");
+    });
+
     return true;
   }
+  if (request.action === "fetchActivities") {
+    chrome.storage.local.get("activities", (data) => {
+      console.log("fetched activities", data.activities)
+      sendResponse(data.activities || [] );
+    });
 
-  if (message.action === "updateAdBlockCount") {
-    updateAdBlockCount().then(sendResponse);
     return true;
   }
 });

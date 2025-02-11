@@ -8,38 +8,40 @@ const App = () => {
 
   useEffect(() => {
     const loadPreferences = async () => {
-        // Fallback for non-extension testing
-        setContent(localStorage.getItem("adContent") || "motivation");
-        setActivities(JSON.parse(localStorage.getItem("activities")) || []);
-        setAdBlockCount(parseInt(localStorage.getItem("adBlockCount")) || 0);
-      }
+      chrome.storage.local.get(["adContent", "activities", "adBlockCount"], (data) => {
+        setContent(data.adContent || "motivation");
+        setActivities(data.activities || []);
+        setAdBlockCount(data.adBlockCount || 0);
+      });
+    };
+
     loadPreferences();
   }, []);
 
-  const savePreference = async () => {
-      localStorage.setItem("adContent", content);
-      if (chrome?.storage?.local) {
-        chrome.storage.local.setItem("adContent", content)
-      }
+  const savePreference = () => {
+    chrome.storage.local.set({ adContent: content }, () => {
       alert("Preference saved!");
+    });
   };
 
-  const addActivity = async () => {
+  const addActivity = () => {
     if (activity.trim() === "") return;
     const updatedActivities = [...activities, activity];
     setActivities(updatedActivities);
     setActivity("");
-    localStorage.setItem("activities", JSON.stringify(updatedActivities));
+
+    chrome.storage.local.set({ activities: updatedActivities });
   };
 
-  const removeActivity = async (index) => {
+  const removeActivity = (index) => {
     const updatedActivities = activities.filter((_, i) => i !== index);
     setActivities(updatedActivities);
-    localStorage.setItem("activities", JSON.stringify(updatedActivities));
+    
+    chrome.storage.local.set({ activities: updatedActivities });
   };
 
   return (
-    <div className="w-full h-full mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg border border-gray-200 flex justify-center align-center">
+    <div className="w-full h-full mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg border border-gray-200 flex flex-col items-center">
       <h2 className="text-2xl font-bold text-gray-700 mb-4">🎯 AdFriend</h2>
 
       {/* Show ad block count */}
@@ -48,7 +50,7 @@ const App = () => {
       </p>
 
       {/* Select ad replacement content */}
-      <div className="mt-4">
+      <div className="mt-4 w-full">
         <label className="block text-gray-600 font-medium">Replace Ads with:</label>
         <select
           value={content}
@@ -69,7 +71,7 @@ const App = () => {
 
       {/* Activity Input (only if reminder is selected) */}
       {content === "reminder" && (
-        <div className="mt-6">
+        <div className="mt-6 w-full">
           <h3 className="text-xl font-semibold text-gray-700">🏋️ Activity Reminders</h3>
           <div className="flex mt-2">
             <input
@@ -88,7 +90,7 @@ const App = () => {
           </div>
 
           {/* List of activities */}
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-4 space-y-2 w-full">
             {activities.map((act, index) => (
               <li
                 key={index}
